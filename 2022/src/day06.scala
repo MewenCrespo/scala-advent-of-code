@@ -13,31 +13,48 @@ import scala.collection.mutable
 def loadInput(): String = loadFileSync(s"$currentDir/../input/day06")
 
 def part1(input: String): Int =
-  findIndex(input, n = 4)
+  findIndexOptimal(input, n = 4)
 
 def part2(input: String): Int =
-  findIndex(input, n = 14)
+  findIndexOptimal(input, n = 14)
 
 def findIndex(input: String, n: Int): Int =
   val firstIndex = input.sliding(n).indexWhere(_.toSet.size == n)
   firstIndex + n
 
+class MultiSet:
+  private val counts = new Array[Int](128)
+  private var total = 0
+  def size = total
+
+  def add(c: Char) =
+    val count = counts(c.toInt)
+    if count == 0 then
+      total += 1
+    counts(c.toInt) += 1
+
+  def remove(c: Char) =
+    val count = counts(c.toInt)
+    if count > 0 then
+      if count == 1 then
+        total -= 1
+      counts(c.toInt) -= 1
+end MultiSet
+
 def findIndexOptimal(input: String, n: Int): Int =
-  val counts = mutable.HashMap.empty[Char, Int]
+  val counts = MultiSet()
+  var i = -1
   var previous = '#'
-  val firstIndex = input.iterator.sliding(n).indexWhere(cs =>
+  val windows = input.iterator.sliding(n)
+  while windows.hasNext && {
+    val window = windows.next()
     if previous == '#' then
-      cs.foreach(counts(_) = 1)
-    else if previous != cs.last then
-      counts.updateWith(previous) {
-        case Some(value) => if value == 1 then None else Some(value - 1)
-        case None => None // don't care if not in the
-      }
-      counts.updateWith(cs.last) {
-        case Some(value) => Some(value + 1)
-        case None => Some(1)
-      }
-    previous = cs.head
-    counts.size == n
-  )
-  firstIndex + n
+      window.foreach(counts.add)
+    else if previous != window.last then
+      counts.remove(previous)
+      counts.add(window.last)
+    previous = window.head
+    i += 1
+    counts.size != n
+  } do ()
+  i + n
